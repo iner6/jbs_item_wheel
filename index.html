@@ -392,6 +392,7 @@ const PITY_POOL = [
   { name: '斩马刀',     prob: 33.33, color: '#A8D8EA', textColor: '#1A5276' },
   { name: '100魅力值',  prob: 16.67, color: '#D8B5FF', textColor: '#4A235A' },
   { name: '回马枪',     prob: 8.33,  color: '#FFB6C1', textColor: '#922B3E' },
+  { name: '再来一次',   prob: 5,     color: '#B5EAD7', textColor: '#1B5E20' },
 ];
 
 // ===================== STATE =====================
@@ -683,7 +684,7 @@ async function startSpin() {
     // Show result in center
     const isWin = result.prize.name !== '谢谢惠顾';
     const isFree = result.isFreeSpin;
-    centerResult.textContent = result.prize.name + (result.isPity ? '（保底）' : '');
+    centerResult.textContent = result.prize.name;
     centerResult.className = 'center-result show' + (isFree ? ' retry' : isWin ? ' win' : '');
 
     // Play result sound
@@ -751,8 +752,7 @@ function showSummary(results, totalSpins) {
     const isFree = r.isFreeSpin;
     const cls = isFree ? 'retry' : isWin ? 'win' : '';
     let tag = '';
-    if (r.isPity) tag = '<span class="tag">保底</span>';
-    else if (isFree) tag = '<span class="tag">免费转</span>';
+    if (isFree) tag = '<span class="tag">免费转</span>';
     html += `<div class="summary-item ${cls}">
       <span>第${i + 1}次：${r.prize.name}</span>
       ${tag}
@@ -785,7 +785,7 @@ function addHistory(results) {
     const isWin = r.prize.name !== '谢谢惠顾';
     li.innerHTML = `
       <span class="round-label">第${historyCounter}轮</span>
-      <span class="prize-name ${isWin ? 'win' : ''}">${r.prize.name}${r.isPity ? '（保底）' : ''}${r.isFreeSpin ? '（免费）' : ''}</span>
+      <span class="prize-name ${isWin ? 'win' : ''}">${r.prize.name}${r.isFreeSpin ? '（免费）' : ''}</span>
     `;
     list.prepend(li);
     history.push(r);

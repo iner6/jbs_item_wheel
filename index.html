@@ -70,7 +70,32 @@ body {
 .header .subtitle {
   font-family: 'ZCOOL KuaiLe', cursive;
   font-size: 1rem; color: var(--brown); opacity: 0.5;
-  margin-top: 4px; letter-spacing: 0.15em;
+  letter-spacing: 0.15em;
+}
+.subtitle-row {
+  display: flex; align-items: center; justify-content: center;
+  gap: 12px; margin-top: 4px;
+}
+.stop-btn {
+  padding: 5px 18px; border-radius: 20px;
+  border: 2px solid #FF85A2;
+  background: linear-gradient(135deg, #FFB6C1, #FF85A2);
+  color: #fff; font-family: 'ZCOOL KuaiLe', cursive;
+  font-size: 0.9rem; letter-spacing: 0.08em;
+  cursor: pointer; transition: transform 0.2s, box-shadow 0.2s, opacity 0.3s;
+  box-shadow: 0 3px 10px rgba(255,133,162,0.35);
+}
+.stop-btn:hover:not(:disabled) { transform: scale(1.07); box-shadow: 0 5px 14px rgba(255,133,162,0.45); }
+.stop-btn:active:not(:disabled) { transform: scale(0.95); }
+.stop-btn:not(:disabled) { animation: stopPulse 1.4s ease-in-out infinite; }
+.stop-btn:disabled {
+  background: #fff; color: rgba(93,64,55,0.35);
+  border-color: rgba(255,182,193,0.5);
+  box-shadow: none; cursor: not-allowed; opacity: 0.6;
+}
+@keyframes stopPulse {
+  0%, 100% { box-shadow: 0 3px 10px rgba(255,133,162,0.35); }
+  50% { box-shadow: 0 3px 16px rgba(255,133,162,0.7); }
 }
 
 /* === MAIN === */
@@ -295,6 +320,65 @@ canvas#wheelCanvas { width: 100%; height: 100%; display: block; }
 }
 .modal .close-btn:hover { transform: scale(1.05); }
 
+/* === PROB ADJUST BUTTON === */
+.prob-adjust-btn {
+  padding: 6px 18px; border-radius: 20px;
+  border: 2px solid #FFB6C1; background: #fff;
+  font-family: 'ZCOOL KuaiLe', cursive; font-size: 0.9rem;
+  color: var(--brown); cursor: pointer; transition: all 0.2s;
+  margin-top: 4px;
+}
+.prob-adjust-btn:hover { background: #FFD3B6; transform: scale(1.05); }
+
+/* === PROB MODAL === */
+.prob-modal .prob-list { text-align: left; margin: 12px 0; }
+.prob-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 6px 0; border-bottom: 1px dashed rgba(255,182,193,0.3);
+  gap: 8px;
+}
+.prob-row:last-child { border-bottom: none; }
+.prob-row .prob-label {
+  flex: 1; font-size: 0.95rem; color: var(--text); font-weight: 600;
+  display: flex; align-items: center; gap: 6px;
+}
+.prob-row .prob-dot {
+  width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0;
+}
+.prob-row input[type="number"] {
+  width: 70px; padding: 5px 8px; border-radius: 10px;
+  border: 2px solid #FFB6C1; font-family: 'Noto Sans SC', sans-serif;
+  font-size: 0.9rem; color: var(--brown); text-align: center;
+  outline: none; transition: border-color 0.2s;
+  -moz-appearance: textfield;
+}
+.prob-row input[type="number"]::-webkit-inner-spin-button,
+.prob-row input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.prob-row input:focus { border-color: #FF85A2; }
+.prob-total {
+  margin: 10px 0; padding: 8px 12px; border-radius: 10px;
+  font-family: 'ZCOOL KuaiLe', cursive; font-size: 0.95rem;
+  text-align: center;
+}
+.prob-total.ok { background: rgba(168,230,207,0.3); color: #2E7D53; }
+.prob-total.err { background: rgba(255,182,193,0.3); color: #922B3E; }
+.prob-apply-btn {
+  margin-top: 8px; padding: 8px 28px; border-radius: 20px;
+  border: 2px solid #FFB6C1;
+  background: linear-gradient(135deg, #FFD3B6, #FFB6C1);
+  color: #fff; font-family: 'ZCOOL KuaiLe', cursive;
+  font-size: 0.95rem; cursor: pointer; transition: transform 0.2s;
+}
+.prob-apply-btn:hover:not(:disabled) { transform: scale(1.05); }
+.prob-apply-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.prob-reset-link {
+  display: inline-block; margin-top: 6px; font-size: 0.8rem;
+  color: var(--brown); opacity: 0.5; cursor: pointer;
+  text-decoration: underline; border: none; background: none;
+  font-family: 'Noto Sans SC', sans-serif;
+}
+.prob-reset-link:hover { opacity: 0.8; }
+
 /* === CONFETTI === */
 .confetti-container { position: fixed; inset: 0; pointer-events: none; z-index: 99; overflow: hidden; }
 .confetti-piece {
@@ -316,7 +400,10 @@ canvas#wheelCanvas { width: 100%; height: 100%; display: block; }
 
 <div class="header">
   <h1>抽奖大转盘</h1>
-  <div class="subtitle">幸运转盘</div>
+  <div class="subtitle-row">
+    <span class="subtitle">幸运转盘</span>
+    <button class="stop-btn" id="stopBtn" onclick="stopSpin()" disabled>stop</button>
+  </div>
 </div>
 
 <div class="main">
@@ -353,6 +440,8 @@ canvas#wheelCanvas { width: 100%; height: 100%; display: block; }
     </div>
     <ul class="history-list" id="historyList"></ul>
   </div>
+
+  <button class="prob-adjust-btn" onclick="openProbModal()">机率调整</button>
 </div>
 
 <div class="modal-overlay" id="modalOverlay">
@@ -360,6 +449,19 @@ canvas#wheelCanvas { width: 100%; height: 100%; display: block; }
     <h2 id="modalTitle">抽奖统计</h2>
     <div id="modalBody"></div>
     <button class="close-btn" id="modalCloseBtn" onclick="closeSummary()">好的</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="probModalOverlay">
+  <div class="modal prob-modal">
+    <h2>机率调整</h2>
+    <p style="font-size:0.8rem;color:var(--brown);opacity:0.6;margin-bottom:8px;">调整一般抽奖机率（非保底），总和须为 100</p>
+    <div class="prob-list" id="probList"></div>
+    <div class="prob-total" id="probTotal"></div>
+    <button class="prob-apply-btn" id="probApplyBtn" onclick="applyProb()">确定</button>
+    <button class="prob-reset-link" onclick="resetProb()">恢复预设值</button>
+    <br>
+    <button class="close-btn" style="margin-top:10px;padding:6px 20px;font-size:0.85rem;" onclick="closeProbModal()">取消</button>
   </div>
 </div>
 
@@ -385,19 +487,20 @@ const TOTAL_DEG = 360;
 const EQUAL_ANGLE = TOTAL_DEG / SECTORS.length;
 SECTORS.forEach(s => { s.angleDeg = EQUAL_ANGLE; });
 
-// Pity pool: real prizes only, weights recalculated to 100%
+// Pity pool: real prizes only, weights total exactly 100
+// 移除「再來一次」後，原 95 等比放大至 100（×20/19）
 const PITY_POOL = [
-  { name: '50魅力值',   prob: 25,    color: '#A8E6CF', textColor: '#2E7D53' },
-  { name: '黄马褂',     prob: 16.67, color: '#F0D68A', textColor: '#5D4037' },
-  { name: '斩马刀',     prob: 33.33, color: '#A8D8EA', textColor: '#1A5276' },
-  { name: '100魅力值',  prob: 16.67, color: '#D8B5FF', textColor: '#4A235A' },
-  { name: '回马枪',     prob: 8.33,  color: '#FFB6C1', textColor: '#922B3E' },
-  { name: '再来一次',   prob: 5,     color: '#B5EAD7', textColor: '#1B5E20' },
+  { name: '50魅力值',   prob: 500/19,    color: '#A8E6CF', textColor: '#2E7D53' },
+  { name: '黄马褂',     prob: 3500/171,  color: '#F0D68A', textColor: '#5D4037' },
+  { name: '斩马刀',     prob: 3500/171,  color: '#A8D8EA', textColor: '#1A5276' },
+  { name: '100魅力值',  prob: 1000/57,   color: '#D8B5FF', textColor: '#4A235A' },
+  { name: '回马枪',     prob: 3500/171,  color: '#FFB6C1', textColor: '#922B3E' },
 ];
 
 // ===================== STATE =====================
 let spinCount = 1;
 let isSpinning = false;
+let spinAborted = false;
 let currentRotation = 0;
 let pityCounter = 0;
 let pityThreshold = randomPityThreshold();
@@ -656,6 +759,7 @@ async function startSpin() {
   if (isSpinning) return;
   initAudio(); // Initialize audio on first interaction
   isSpinning = true;
+  spinAborted = false;
   const spinBtn = document.getElementById('spinBtn');
   spinBtn.classList.add('disabled');
   spinBtn.textContent = '';
@@ -663,19 +767,32 @@ async function startSpin() {
   const results = [];
   const totalSpins = spinCount;
   const centerResult = document.getElementById('centerResult');
+  const stopBtn = document.getElementById('stopBtn');
 
   for (let i = 0; i < totalSpins; i++) {
+    // Check abort before each spin
+    if (spinAborted) break;
+
     let result = processOneSpin();
     results.push(result);
 
     // Animate wheel
     const sectorIdx = findSectorIndex(result.prize);
     const targetAngle = computeTargetAngle(sectorIdx);
-    
+
     // Start tick sounds during spin
     const tickInterval = setInterval(playTick, 100);
+    stopBtn.disabled = false;
     await animateSpin(targetAngle);
+    stopBtn.disabled = true;
     clearInterval(tickInterval);
+
+    // Check abort after animation (before recording)
+    if (spinAborted) {
+      // Remove the last result we just added
+      results.pop();
+      break;
+    }
 
     // Highlight winning sector
     highlightedSector = sectorIdx;
@@ -702,6 +819,9 @@ async function startSpin() {
       await delay(2200);
     }
 
+    // Check abort during wait
+    if (spinAborted) break;
+
     // Clear highlight and center result
     centerResult.classList.remove('show');
     highlightedSector = -1;
@@ -709,29 +829,117 @@ async function startSpin() {
     await delay(300);
   }
 
-  // Add to history
-  addHistory(results);
+  // Only record and show summary if NOT aborted
+  if (!spinAborted && results.length > 0) {
+    // Add to history
+    addHistory(results);
 
-  // Show summary
-  showSummary(results, totalSpins);
+    // Show summary
+    showSummary(results, totalSpins);
+  }
 
+  // Reset UI state
   isSpinning = false;
+  spinAborted = false;
+  stopBtn.disabled = true;
   spinBtn.classList.remove('disabled');
   spinBtn.innerHTML = '开始<br>抽奖';
+  centerResult.classList.remove('show');
+  highlightedSector = -1;
+  drawWheel(-1);
 }
 
 function delay(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+// Cubic-bezier easing solver (mirrors the CSS timing functions)
+function makeBezierEase(p1x, p1y, p2x, p2y) {
+  const cx = 3 * p1x, bx = 3 * (p2x - p1x) - cx, ax = 1 - cx - bx;
+  const cy = 3 * p1y, by = 3 * (p2y - p1y) - cy, ay = 1 - cy - by;
+  const sampleX = t => ((ax * t + bx) * t + cx) * t;
+  const sampleY = t => ((ay * t + by) * t + cy) * t;
+  const sampleDX = t => (3 * ax * t + 2 * bx) * t + cx;
+  return function (x) {
+    if (x <= 0) return 0;
+    if (x >= 1) return 1;
+    let t = x;
+    for (let i = 0; i < 8; i++) {
+      const dx = sampleX(t) - x;
+      if (Math.abs(dx) < 1e-6) return sampleY(t);
+      const d = sampleDX(t);
+      if (Math.abs(d) < 1e-6) break;
+      t -= dx / d;
+    }
+    let lo = 0, hi = 1; t = x;
+    for (let i = 0; i < 40; i++) {
+      const x2 = sampleX(t);
+      if (Math.abs(x2 - x) < 1e-6) break;
+      if (x > x2) lo = t; else hi = t;
+      t = (lo + hi) / 2;
+    }
+    return sampleY(t);
+  };
+}
+
+const SPIN_EASE = makeBezierEase(0.17, 0.67, 0.12, 0.99);
+const STOP_EASE = makeBezierEase(0.22, 1, 0.36, 1);
+const SPIN_DURATION = 4000;
+const STOP_DURATION = 850;
+
+// Holds the in-flight wheel animation so stopSpin() can retarget it
+let activeSpin = null;
+
 function animateSpin(targetAngle) {
   return new Promise(resolve => {
     const wrap = document.getElementById('wheelWrap');
-    currentRotation += targetAngle;
-    wrap.style.transition = 'transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99)';
-    wrap.style.transform = `rotate(${currentRotation}deg)`;
-    setTimeout(resolve, 4100);
+    wrap.style.transition = 'none';
+
+    let fromAngle = currentRotation;
+    let toAngle = currentRotation + targetAngle;
+    let duration = SPIN_DURATION;
+    let easing = SPIN_EASE;
+    let startTime = performance.now();
+    let angle = fromAngle;
+    let stopped = false;
+
+    function frame(now) {
+      let t = (now - startTime) / duration;
+      if (t > 1) t = 1;
+      angle = fromAngle + (toAngle - fromAngle) * easing(t);
+      wrap.style.transform = `rotate(${angle}deg)`;
+      if (t >= 1) {
+        currentRotation = toAngle;
+        activeSpin = null;
+        resolve();
+        return;
+      }
+      requestAnimationFrame(frame);
+    }
+
+    activeSpin = {
+      // Cut the remaining full turns but keep the SAME landing sector,
+      // so the pre-drawn prize (and therefore the odds) never changes.
+      stop() {
+        if (stopped) return;
+        stopped = true;
+        let target = toAngle;
+        while (target - 360 >= angle + 120) target -= 360;
+        fromAngle = angle;
+        toAngle = target;
+        duration = STOP_DURATION;
+        easing = STOP_EASE;
+        startTime = performance.now();
+      }
+    };
+
+    requestAnimationFrame(frame);
   });
+}
+
+function stopSpin() {
+  spinAborted = true;
+  if (activeSpin) activeSpin.stop();
 }
 
 // ===================== UI HELPERS =====================
@@ -818,6 +1026,97 @@ function launchConfetti() {
   }
 }
 
+// ===================== PROBABILITY ADJUSTMENT =====================
+// Default probabilities for SECTORS (unique prizes)
+const DEFAULT_PROBS = {
+  '谢谢惠顾': 35,   // total across 3 sectors
+  '50魅力值':  15,   // total across 2 sectors
+  '黄马褂':    10,   // total across 2 sectors
+  '斩马刀':    20,   // 1 sector
+  '100魅力值': 10,   // 1 sector
+  '回马枪':    5,    // 1 sector
+  '再来一次':  5,    // 1 sector
+};
+
+// Count how many sectors each prize name has
+function getSectorCounts() {
+  const counts = {};
+  SECTORS.forEach(s => { counts[s.name] = (counts[s.name] || 0) + 1; });
+  return counts;
+}
+
+// Current user-adjusted probabilities (total = 100)
+let userProbs = { ...DEFAULT_PROBS };
+
+function applyProbsToSectors() {
+  const counts = getSectorCounts();
+  SECTORS.forEach(s => {
+    s.prob = userProbs[s.name] / counts[s.name];
+  });
+}
+
+function openProbModal() {
+  if (isSpinning) return;
+  const overlay = document.getElementById('probModalOverlay');
+  const list = document.getElementById('probList');
+  const counts = getSectorCounts();
+
+  const uniquePrizes = Object.keys(DEFAULT_PROBS);
+  let html = '';
+  uniquePrizes.forEach(name => {
+    const sector = SECTORS.find(s => s.name === name);
+    const pct = userProbs[name];
+    html += `<div class="prob-row">
+      <span class="prob-label"><span class="prob-dot" style="background:${sector.color}"></span>${name}</span>
+      <input type="number" min="0" max="100" step="0.1" value="${pct}" data-prize="${name}" oninput="updateProbTotal()">
+      <span style="font-size:0.8rem;opacity:0.5;">%</span>
+    </div>`;
+  });
+  list.innerHTML = html;
+  updateProbTotal();
+  overlay.classList.add('show');
+}
+
+function updateProbTotal() {
+  const inputs = document.querySelectorAll('#probList input');
+  let total = 0;
+  inputs.forEach(inp => { total += parseFloat(inp.value) || 0; });
+  const totalEl = document.getElementById('probTotal');
+  const applyBtn = document.getElementById('probApplyBtn');
+  totalEl.textContent = `总计：${total.toFixed(1)}%`;
+  if (Math.abs(total - 100) < 0.01) {
+    totalEl.className = 'prob-total ok';
+    applyBtn.disabled = false;
+  } else {
+    totalEl.className = 'prob-total err';
+    applyBtn.disabled = true;
+  }
+}
+
+function applyProb() {
+  const inputs = document.querySelectorAll('#probList input');
+  inputs.forEach(inp => {
+    userProbs[inp.dataset.prize] = parseFloat(inp.value) || 0;
+  });
+  applyProbsToSectors();
+  drawWheel(-1);
+  closeProbModal();
+}
+
+function resetProb() {
+  userProbs = { ...DEFAULT_PROBS };
+  applyProbsToSectors();
+  // Update inputs in modal
+  const inputs = document.querySelectorAll('#probList input');
+  inputs.forEach(inp => { inp.value = userProbs[inp.dataset.prize]; });
+  updateProbTotal();
+  drawWheel(-1);
+}
+
+function closeProbModal() {
+  document.getElementById('probModalOverlay').classList.remove('show');
+}
+
 // ===================== INIT =====================
 window.addEventListener('load', () => {
   drawWheel(-1);
@@ -851,5 +1150,7 @@ function createFloatingShapes() {
   }
 }
 </script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v3d52b47920f24c319d37e2661827c42b1787588026925" integrity="sha512-d9sL6GJLXn6fInD1+TVXhTcQOsmxeHfmHAvwGDIxp5TO+uo1fiWW7mHomMj4MLRlCsJDTqXzWLHJFFlPCEIj/A==" data-cf-beacon='{"version":"2024.11.0","token":"75124c326cb447fe934cde04713ae013","r":1}' crossorigin="anonymous"></script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v3d52b47920f24c319d37e2661827c42b1787588026925" integrity="sha512-d9sL6GJLXn6fInD1+TVXhTcQOsmxeHfmHAvwGDIxp5TO+uo1fiWW7mHomMj4MLRlCsJDTqXzWLHJFFlPCEIj/A==" data-cf-beacon='{"version":"2024.11.0","token":"75124c326cb447fe934cde04713ae013","r":1}' crossorigin="anonymous"></script>
 </body>
 </html>

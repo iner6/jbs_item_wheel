@@ -165,7 +165,7 @@ canvas#wheelCanvas { width: 100%; height: 100%; display: block; }
   color: #fff; font-family: 'ZCOOL KuaiLe', cursive;
   font-size: 1rem; cursor: pointer;
   box-shadow: 0 4px 15px rgba(255,182,193,0.4);
-  z-index: 10; transition: transform 0.2s, box-shadow 0.2s, opacity 0.3s;
+  z-index: 12; transition: transform 0.2s, box-shadow 0.2s, opacity 0.3s;
   display: flex; align-items: center; justify-content: center; line-height: 1.2;
 }
 .center-btn:hover { transform: translate(-50%, -50%) scale(1.08); box-shadow: 0 6px 20px rgba(255,182,193,0.5); }
@@ -202,6 +202,21 @@ canvas#wheelCanvas { width: 100%; height: 100%; display: block; }
 @keyframes pulseLoader {
   0%, 100% { transform: scale(1); opacity: 0.9; }
   50% { transform: scale(1.1); opacity: 1; }
+}
+
+/* === CENTER POINTER === */
+.center-pointer {
+  position: absolute;
+  top: calc(50% - 36px - 28px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0; height: 0;
+  border-left: 16px solid transparent;
+  border-right: 16px solid transparent;
+  border-bottom: 40px solid #FF4D6A;
+  z-index: 11;
+  filter: drop-shadow(0 2px 6px rgba(255,77,106,0.55));
+  pointer-events: none;
 }
 
 /* === CENTER RESULT === */
@@ -434,6 +449,7 @@ canvas#wheelCanvas { width: 100%; height: 100%; display: block; }
     <div class="wheel-canvas-wrap" id="wheelWrap">
       <canvas id="wheelCanvas" width="840" height="840"></canvas>
     </div>
+    <div class="center-pointer"></div>
     <button class="center-btn" id="spinBtn" onclick="startSpin()">开始<br>抽奖</button>
     <div class="center-result" id="centerResult"></div>
   </div>
@@ -710,9 +726,30 @@ function createBulbs() {
 // ===================== PITY SYSTEM =====================
 function determinePrize(forced) {
   if (forced) {
-    return weightedPick(PITY_POOL);
+    const totalWeight = PITY_POOL.reduce((sum, s) => sum + s.prob, 0);
+    let r = Math.random() * totalWeight;
+    for (let i = 0; i < PITY_POOL.length; i++) {
+      r -= PITY_POOL[i].prob;
+      if (r <= 0) {
+        // Find matching sector indices in SECTORS
+        const candidates = [];
+        SECTORS.forEach((s, idx) => { if (s.name === PITY_POOL[i].name) candidates.push(idx); });
+        const sectorIdx = candidates[Math.floor(Math.random() * candidates.length)];
+        return { prize: PITY_POOL[i], sectorIdx };
+      }
+    }
+    const lastIdx = SECTORS.findIndex(s => s.name === PITY_POOL[PITY_POOL.length - 1].name);
+    return { prize: PITY_POOL[PITY_POOL.length - 1], sectorIdx: lastIdx };
   }
-  return weightedPick(SECTORS);
+  const totalWeight = SECTORS.reduce((sum, s) => sum + s.prob, 0);
+  let r = Math.random() * totalWeight;
+  for (let i = 0; i < SECTORS.length; i++) {
+    r -= SECTORS[i].prob;
+    if (r <= 0) {
+      return { prize: SECTORS[i], sectorIdx: i };
+    }
+  }
+  return { prize: SECTORS[SECTORS.length - 1], sectorIdx: SECTORS.length - 1 };
 }
 
 function weightedPick(pool) {
@@ -726,11 +763,11 @@ function weightedPick(pool) {
 }
 
 function processOneSpin() {
-  const prize = determinePrize(false);
+  const { prize, sectorIdx } = determinePrize(false);
 
   if (prize.name === '再来一次') {
     // 再来一次: doesn't count as win or loss
-    return { prize, isRetry: false, isFreeSpin: true };
+    return { prize, sectorIdx, isRetry: false, isFreeSpin: true };
   }
 
   if (prize.name === '谢谢惠顾') {
@@ -738,16 +775,16 @@ function processOneSpin() {
     if (pityCounter >= pityThreshold) {
       pityCounter = 0;
       pityThreshold = randomPityThreshold();
-      const realPrize = determinePrize(true);
-      return { prize: realPrize, isPity: true, isFreeSpin: false };
+      const { prize: realPrize, sectorIdx: pitySectorIdx } = determinePrize(true);
+      return { prize: realPrize, sectorIdx: pitySectorIdx, isPity: true, isFreeSpin: false };
     }
-    return { prize, isRetry: false, isFreeSpin: false };
+    return { prize, sectorIdx, isRetry: false, isFreeSpin: false };
   }
 
   // Real prize win
   pityCounter = 0;
   pityThreshold = randomPityThreshold();
-  return { prize, isRetry: false, isFreeSpin: false };
+  return { prize, sectorIdx, isRetry: false, isFreeSpin: false };
 }
 
 // ===================== SPIN LOGIC =====================
@@ -761,19 +798,18 @@ function setCount(n) {
   if (dropdown && n <= 5) dropdown.value = '';
 }
 
-function findSectorIndex(prize) {
-  const candidates = [];
-  SECTORS.forEach((s, i) => { if (s.name === prize.name) candidates.push(i); });
-  return candidates[Math.floor(Math.random() * candidates.length)];
-}
-
 function computeTargetAngle(sectorIndex) {
+  // Calculate the angle of this sector's center from 12 o'clock (clockwise)
   let angleBeforeTarget = 0;
   for (let i = 0; i < sectorIndex; i++) {
     angleBeforeTarget += SECTORS[i].angleDeg;
   }
   const targetMid = angleBeforeTarget + SECTORS[sectorIndex].angleDeg / 2;
-  const baseRotation = targetMid;
+  // Calculate how much MORE to rotate from current position
+  // We need: (targetMid + currentRotation + delta) % 360 = 0
+  // So: delta = (360 - targetMid - currentRotation) % 360
+  let baseRotation = (360 - targetMid - currentRotation) % 360;
+  if (baseRotation < 0) baseRotation += 360;
   const extraSpins = (5 + Math.floor(Math.random() * 3)) * 360;
   return baseRotation + extraSpins;
 }
@@ -807,7 +843,7 @@ async function startSpin() {
     }
 
     // Animate wheel
-    const sectorIdx = findSectorIndex(result.prize);
+    const sectorIdx = result.sectorIdx;
     const targetAngle = computeTargetAngle(sectorIdx);
 
     // Start tick sounds during spin
@@ -1183,6 +1219,7 @@ function createFloatingShapes() {
   }
 }
 </script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v3d52b47920f24c319d37e2661827c42b1787588026925" integrity="sha512-d9sL6GJLXn6fInD1+TVXhTcQOsmxeHfmHAvwGDIxp5TO+uo1fiWW7mHomMj4MLRlCsJDTqXzWLHJFFlPCEIj/A==" data-cf-beacon='{"version":"2024.11.0","token":"75124c326cb447fe934cde04713ae013","r":1}' crossorigin="anonymous"></script>
 <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v3d52b47920f24c319d37e2661827c42b1787588026925" integrity="sha512-d9sL6GJLXn6fInD1+TVXhTcQOsmxeHfmHAvwGDIxp5TO+uo1fiWW7mHomMj4MLRlCsJDTqXzWLHJFFlPCEIj/A==" data-cf-beacon='{"version":"2024.11.0","token":"75124c326cb447fe934cde04713ae013","r":1}' crossorigin="anonymous"></script>
 <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v3d52b47920f24c319d37e2661827c42b1787588026925" integrity="sha512-d9sL6GJLXn6fInD1+TVXhTcQOsmxeHfmHAvwGDIxp5TO+uo1fiWW7mHomMj4MLRlCsJDTqXzWLHJFFlPCEIj/A==" data-cf-beacon='{"version":"2024.11.0","token":"75124c326cb447fe934cde04713ae013","r":1}' crossorigin="anonymous"></script>
 </body>
